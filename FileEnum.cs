@@ -1,4 +1,6 @@
-
+// An alternative to Directory.GetFiles(), which operates better, faster, and skips any permission issues
+//      Utilizes FindFirstFile & FileNextFile Windows API
+//
 // Original code from:
 //      FastDirectoryEnumerator.cs   |  Aug 2009 |   codeproject.com/Articles/38959/A-Faster-Directory-Enumerator
 //
