@@ -19,6 +19,7 @@
 // Example call:
 //      List<string> GetFilesMultiPattern2(string directory, string searchPatternFilter, bool recursive)
 //      {
+//          // GetFilesMultiPattern2("K:", "*.mp4|*.mpg|*.mpeg|*.mov|*.wmv|", true);
 //          IEnumerable<FileData> fileInfo = FileEnum.EnumerateFiles(directory, searchPatternFilter, recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
 //          return fileInfo.Select(x => x.Path).ToList();        // Now actually perform the enumeration
 //      }
