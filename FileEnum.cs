@@ -135,8 +135,9 @@ public static class FileEnumIterative
         List<FileData> retList = new List<FileData>();             // Return list of all matching files
         string PathToSearch_Start = path;                          // Root path. Constant.
         List<string> AllFilters = new List<string>();              // Original filter list, utilized for each subdirectory
-        SafeFindHandle hSearchHandle = new SafeFindHandle();       // For FindFile[First / Next] API calls
-        bool successFindFile = false;                              // FindFile[First / Next] API calls - Successful or not
+        SafeFindHandle hSearchHandle = new SafeFindHandle();       // For Find[First / Next]File API calls
+        bool successFindFirstFile = false;                         // FindFirstFile API calls - Successful or not
+        bool successFindNextFile = false;                          // FindNextFile API calls - Successful or not
         SearchContext CurrentPathContext;                          // Represents filters for each Directory & Subdirectories
 
         // Current file information returned from FindFile[First / Next] API calls
@@ -210,9 +211,11 @@ public static class FileEnumIterative
             }
 
             // FindFileFirst(filter)  +  FindFileNext()
-            do
+            while (true)
             {
-                if (hSearchHandle == null)
+                successFindNextFile = false;
+
+                if (hSearchHandle == null || hSearchHandle.IsInvalid)
                 {
                     string searchPath_WithFilterAdded = PathSearchingCurrently;
 
@@ -233,8 +236,8 @@ public static class FileEnumIterative
 
                     FindDataIO_CurrentFileFound = new WIN32_FIND_DATA();
                     hSearchHandle = FindFirstFile(searchPath_WithFilterAdded, FindDataIO_CurrentFileFound);
-                    successFindFile = !hSearchHandle.IsInvalid;
-                    if (!successFindFile)
+                    successFindFirstFile = !hSearchHandle.IsInvalid;
+                    if (!successFindFirstFile)
                     {
                         if (CurrentPathContext.RemainingFilters.Count > 0)
                         {
@@ -253,12 +256,12 @@ public static class FileEnumIterative
                 else
                 {
                     //
-                    // Existing search (same filter)
+                    // Existing search (same filter) -- a file was found with this current filter
                     //
 
                     FindDataIO_CurrentFileFound = new WIN32_FIND_DATA();
-                    successFindFile = FindNextFile(hSearchHandle, FindDataIO_CurrentFileFound);
-                    if (!successFindFile)       // No more files exist with this file ext / filter. So move on to the next if available
+                    successFindNextFile = FindNextFile(hSearchHandle, FindDataIO_CurrentFileFound);
+                    if (!successFindNextFile)       // No more files exist with this file ext / filter. So move on to the next if available
                     {
                         if (CurrentPathContext.RemainingFilters.Count > 0)
                         {
@@ -275,12 +278,18 @@ public static class FileEnumIterative
                         // Store it
                         retList.Add(new FileData(PathSearchingCurrently, FindDataIO_CurrentFileFound));
                     }
+                }       
+
+
+                if((successFindFirstFile && !successFindNextFile && CurrentPathContext.RemainingFilters.Count == 0) ||
+                    !successFindFirstFile && !successFindNextFile && CurrentPathContext.RemainingFilters.Count == 0)
+                {
+                    // No additional files in this directory if 1 file was found for this filter, but there aren't any other files, and the entire filter list has been gone thru
+                    break;
                 }
 
-                // !success means No more files with this ext were found. Success if there WAS a file find (unsure if there are more until the next check)
-                // +
-                // If there is another filter to look at next in this current directory / subdirectory (if this is the recursive call)
-            } while (!successFindFile && CurrentPathContext.RemainingFilters.Count > 0);
+
+            }  // While: loop indefintiely until the condition above is met
 
             if (searchOption == SearchOption.AllDirectories)
             {
